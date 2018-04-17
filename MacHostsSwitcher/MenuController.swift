@@ -12,22 +12,57 @@ struct MenuItemModel {
     var title: String
 }
 
+class Hosts {
+    let hostsFile = URL(fileURLWithPath: "/etc/hosts")
+    var availableFiles = [URL]()
+
+    init() {
+        collectAvailableFiles()
+    }
+
+    func setActive(byIndex index: Int) {
+        guard availableFiles.count > index else { return }
+        try? FileManager.default.copyItem(at: availableFiles[index], to: hostsFile)
+    }
+
+    func getName(forIndex index: Int) -> String? {
+        guard availableFiles.count > index else { return "" }
+        let parts = availableFiles[index].absoluteString.split(separator: Character("_"))
+        return String(describing: parts.last ?? "")
+    }
+
+    private func collectAvailableFiles() {  // TODO: incomplete
+        availableFiles = [URL(fileURLWithPath: "/etc/hosts__QA"),
+                          URL(fileURLWithPath: "/etc/hosts__PROD")
+        ]  // TODO: debug - remove
+    }
+}
+
 class MenuController: NSObject, NSMenuDelegate {
     @IBOutlet var menu: NSMenu!
     let menuItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    
     var modelItemsData: [MenuItemModel]?
+    var hosts: Hosts?
     
     override func awakeFromNib() {
-        modelItemsData = [MenuItemModel(title: "QA"), MenuItemModel(title: "PROD")]  // TODO: debug - remove
-        
+        setupDataSource()
         setupMenu()
         setupMenuItems()
         setupDefaultItem()
     }
     
+    fileprivate func setupDataSource() {
+        hosts = Hosts()
+        guard let files = hosts?.availableFiles else { return }
+        modelItemsData = [MenuItemModel]()
+        for (index, _) in files.enumerated() {
+            guard let title = hosts?.getName(forIndex: index) else { continue }
+            modelItemsData?.append(MenuItemModel(title: title))
+        }
+    }
+
     fileprivate func setupDefaultItem() {
-        guard let data = modelItemsData else { return }
+        guard let data = modelItemsData, data.count > 0 else { return }
         setMenuTitle(data[0].title)
     }
     
@@ -55,6 +90,6 @@ class MenuController: NSObject, NSMenuDelegate {
     }
     
     fileprivate func setMenuTitle(_ title: String) {
-        menuItem.title = title
+        menuItem.title = "~\(title)~"
     }
 }
