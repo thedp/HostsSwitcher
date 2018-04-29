@@ -13,7 +13,8 @@ struct MenuItemModel {
 }
 
 class Hosts {
-    let hostsFile = URL(fileURLWithPath: "/etc/hosts")
+    let basePath = "/Users/eldar/"  // TODO: ELDAR - rename
+    let hostsFile = URL(fileURLWithPath: "/Users/eldar/hosts")
     var availableFiles = [URL]()
 
     init() {
@@ -21,8 +22,8 @@ class Hosts {
     }
 
     func setActive(byIndex index: Int) {
-        guard availableFiles.count > index else { return }
-        try? FileManager.default.copyItem(at: availableFiles[index], to: hostsFile)
+//        guard availableFiles.count > index else { return }
+//        try? FileManager.default.copyItem(at: availableFiles[index], to: hostsFile)
     }
 
     func getName(forIndex index: Int) -> String? {
@@ -31,10 +32,12 @@ class Hosts {
         return String(describing: parts.last ?? "")
     }
 
-    private func collectAvailableFiles() {  // TODO: incomplete
-        availableFiles = [URL(fileURLWithPath: "/etc/hosts__QA"),
-                          URL(fileURLWithPath: "/etc/hosts__PROD")
-        ]  // TODO: debug - remove
+    private func collectAvailableFiles() {
+        guard let dirContentList = try? FileManager.default.contentsOfDirectory(atPath: basePath) else { return }
+        for fileName in dirContentList {
+            guard fileName.range(of: "hosts__") != nil else { continue }
+            availableFiles.append(URL(fileURLWithPath: "\(basePath)/\(fileName)"))
+        }
     }
 }
 
@@ -64,6 +67,7 @@ class MenuController: NSObject, NSMenuDelegate {
     fileprivate func setupDefaultItem() {
         guard let data = modelItemsData, data.count > 0 else { return }
         setMenuTitle(data[0].title)
+        //        hosts?.setActive(byIndex: 0)  // TODO: ELDAR - restore
     }
     
     fileprivate func setupMenuItems() {
@@ -87,6 +91,7 @@ class MenuController: NSObject, NSMenuDelegate {
     
     @objc func menuItemPressed(sender: NSMenuItem) {
         setMenuTitle(sender.title)
+        hosts?.setActive(byIndex: sender.tag)
     }
     
     fileprivate func setMenuTitle(_ title: String) {
